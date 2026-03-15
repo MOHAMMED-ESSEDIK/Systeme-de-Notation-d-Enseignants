@@ -1,10 +1,11 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import "./App.css";
 
-const CONTRACT_ADDRESS = "0x137BCFD0700FfCa3F26AcdCab3bA17a6bA55c647";
+const CONTRACT_ADDRESS = "0xB0Ba2B3aBE935CEf9DeF79278e1dcbfaE92D55a7";
 
 const ABI = [
+"function admin() view returns(address)",
 "function addTeacher(string memory _name)",
 "function rateTeacher(uint teacherId,uint rating)",
 "function teacherCount() view returns(uint)",
@@ -15,20 +16,60 @@ const ABI = [
 
 function App(){
 
-const [account,setAccount] = useState("");
+const [account,setAccount] = useState(null);
 const [contract,setContract] = useState(null);
 const [teachers,setTeachers] = useState([]);
 const [teacherName,setTeacherName] = useState("");
+const [isAdmin,setIsAdmin] = useState(false);
+const [loading,setLoading] = useState(false);
 
 useEffect(()=>{
+autoConnect();
+},[]);
 
-if(contract){
-
+useEffect(()=>{
+if(contract && account){
 loadTeachers();
+}
+},[contract,account]);
+
+/* SELECT METAMASK PROVIDER */
+
+function getProvider(){
+
+if(!window.ethereum) return null;
+
+if(window.ethereum.providers){
+return window.ethereum.providers.find(p => p.isMetaMask);
+}
+
+return window.ethereum;
 
 }
 
-},[contract]);
+/* AUTO CONNECT */
+
+async function autoConnect(){
+
+try{
+
+const provider = getProvider();
+
+if(!provider) return;
+
+const ethersProvider = new ethers.BrowserProvider(provider);
+
+const accounts = await ethersProvider.listAccounts();
+
+if(accounts.length){
+connectWallet();
+}
+
+}catch(err){
+console.log("Auto connect error",err);
+}
+
+}
 
 /* CONNECT WALLET */
 
@@ -36,23 +77,11 @@ async function connectWallet(){
 
 try{
 
-if(!window.ethereum){
+const provider = getProvider();
 
+if(!provider){
 alert("Install MetaMask");
 return;
-
-}
-
-let provider;
-
-if(window.ethereum.providers){
-
-provider = window.ethereum.providers.find(p=>p.isMetaMask);
-
-}else{
-
-provider = window.ethereum;
-
 }
 
 const ethersProvider = new ethers.BrowserProvider(provider);
@@ -65,19 +94,22 @@ const signer = await ethersProvider.getSigner();
 
 const address = await signer.getAddress();
 
-const contract = new ethers.Contract(
+const contractInstance = new ethers.Contract(
 CONTRACT_ADDRESS,
 ABI,
 signer
 );
 
+const adminAddress = await contractInstance.admin();
+
+setIsAdmin(address.toLowerCase() === adminAddress.toLowerCase());
+
 setAccount(address);
-setContract(contract);
+setContract(contractInstance);
 
 }catch(error){
 
-console.log(error);
-alert("Wallet connection failed");
+console.log("Wallet error",error);
 
 }
 
@@ -86,6 +118,10 @@ alert("Wallet connection failed");
 /* LOAD TEACHERS */
 
 async function loadTeachers(){
+
+setLoading(true);
+
+try{
 
 const count = Number(await contract.teacherCount());
 
@@ -100,18 +136,24 @@ const avg = Number(await contract.getAverage(i));
 const voted = await contract.hasVoted(account,i);
 
 list.push({
-
 id:i,
 name:teacher[0],
 votes:Number(teacher[2]),
 average:avg,
 voted:voted
-
 });
 
 }
 
 setTeachers(list);
+
+}catch(error){
+
+console.log("Load teachers error",error);
+
+}
+
+setLoading(false);
 
 }
 
@@ -119,9 +161,9 @@ setTeachers(list);
 
 async function addTeacher(){
 
-try{
-
 if(!teacherName) return;
+
+try{
 
 const tx = await contract.addTeacher(teacherName);
 
@@ -153,7 +195,7 @@ loadTeachers();
 
 }catch(error){
 
-alert("You already voted for this teacher");
+alert("Vote failed or already voted");
 
 }
 
@@ -164,9 +206,7 @@ alert("You already voted for this teacher");
 function StarRating({teacherId,voted}){
 
 if(voted){
-
 return <p className="voted">You already voted</p>;
-
 }
 
 return(
@@ -212,6 +252,8 @@ style={{width:percent+"%"}}
 
 }
 
+/* UI */
+
 return(
 
 <div className="app">
@@ -220,25 +262,19 @@ return(
 
 {!account ?
 
-<button
-className="connect"
-onClick={connectWallet}
->
-
+<button className="connect" onClick={connectWallet}>
 Connect Wallet
-
 </button>
 
 :
 
 <p className="account">
-
-{account.slice(0,6)}...
-{account.slice(-4)}
-
+{account.slice(0,6)}...{account.slice(-4)}
 </p>
 
 }
+
+{isAdmin && (
 
 <div className="add">
 
@@ -249,12 +285,14 @@ placeholder="Teacher name"
 />
 
 <button onClick={addTeacher}>
-
 Add Teacher
-
 </button>
 
 </div>
+
+)}
+
+{loading && <p>Loading teachers...</p>}
 
 <div className="teachers">
 
@@ -264,13 +302,17 @@ Add Teacher
 
 <h2>{t.name}</h2>
 
-<p>Average : {t.average}</p>
+<p>Average Rating : {t.average} / 5</p>
 
 <ProgressBar value={t.average}/>
 
 <p>Votes : {t.votes}</p>
 
+{!isAdmin && (
 <StarRating teacherId={t.id} voted={t.voted}/>
+)}
+
+{isAdmin && <p>Admin cannot vote</p>}
 
 </div>
 
