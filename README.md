@@ -1,3 +1,5 @@
+🌐 Live: http://teacher-rating.duckdns.org:30008/
+💻 GitHub: https://github.com/MOHAMMED-ESSEDIK/Systeme-de-Notation-d-Enseignants
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
