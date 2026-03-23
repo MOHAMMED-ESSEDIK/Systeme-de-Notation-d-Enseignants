@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t redlerty/teacher-rating .'
+            }
+        }
+
+        stage('Login to DockerHub') {
+            steps {
+                sh 'docker login -u YOUR_USERNAME -p YOUR_PASSWORD'
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh 'docker push redlerty/teacher-rating'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f kubernetes/deployment.yaml'
+                sh 'kubectl apply -f kubernetes/service.yaml'
+            }
+        }
+    }
+}

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teacher-rating
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: teacher-rating
+  template:
+    metadata:
+      labels:
+        app: teacher-rating
+    spec:
+      containers:
+      - name: teacher-rating
+        image: redlerty/teacher-rating
+        ports:
+        - containerPort: 80
