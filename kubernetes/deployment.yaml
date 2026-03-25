@@ -13,7 +13,8 @@ spec:
         app: teacher-rating
     spec:
       containers:
-      - name: teacher-rating
-        image: redlerty/teacher-rating
+  -    name: devops-app
+        image: redlerty/teacher-rating:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
