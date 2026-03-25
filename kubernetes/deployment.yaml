@@ -2,19 +2,24 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: teacher-rating
+
 spec:
   replicas: 2
+
   selector:
     matchLabels:
       app: teacher-rating
+
   template:
     metadata:
       labels:
         app: teacher-rating
+
     spec:
       containers:
-  -    name: devops-app
-        image: redlerty/teacher-rating:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 80
+        - name: teacher-rating   # ✅ FIXED
+          image: redlerty/teacher-rating:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 80
